@@ -7,53 +7,53 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_img/stb_image_write.h"
 
-void rotar_pixel_recursivo(unsigned char *img, int size, unsigned char *img_rotada, int x, int y, int channels)
-{
-    // Caso base: Si hemos alcanzado todos los píxeles
-    if (y >= size) {
-        return;  // Se ha recorrido toda la imagen, termina la recursión
-    }
-    if (x >= size) {
-        // Al llegar al final de una fila, movemos al siguiente
-        rotar_pixel_recursivo(img, size, img_rotada, 0, y + 1, channels);
+// Función recursiva para rotar 90 grados una subimagen
+void rotar_imagen_recursiva(unsigned char *img, unsigned char *img_rotada, int x, int y, int width, int height, int channels, int full_width) {
+    // Caso base: Si la subimagen tiene solo un píxel
+    if (width == 1 && height == 1) {
+        int idx = (y * full_width + x) * channels;
+        int rot_idx = (x * full_width + (full_width - 1 - y)) * channels;
+        for (int i = 0; i < channels; i++) {
+            img_rotada[rot_idx + i] = img[idx + i];  // Copiar el píxel en la nueva posición
+        }
         return;
     }
-    
-    // Índice del píxel en la imagen original (img)
-    int index_original = (y * size + x) * channels;
 
-    // Índice del píxel en la imagen rotada (img_rotada)
-    // Para una rotación de 90 grados en sentido horario:
-    int index_rotada = ((size - 1 - x) * size + y) * channels;
+    // Dividir la imagen en cuatro subimágenes
+    int mid_width = width / 2;
+    int mid_height = height / 2;
 
-    // Copiar todos los canales del píxel de la imagen original a la imagen rotada
-    for (int i = 0; i < channels; i++) {
-        img_rotada[index_rotada + i] = img[index_original + i];
+    // Llamadas recursivas para cada subimagen
+    if (mid_width > 0 || mid_height > 0) {
+        // Subimagen superior izquierda
+        rotar_imagen_recursiva(img, img_rotada, x, y, mid_width, mid_height, channels, full_width);
+        
+        // Subimagen superior derecha
+        rotar_imagen_recursiva(img, img_rotada, x + mid_width, y, width - mid_width, mid_height, channels, full_width);
+        
+        // Subimagen inferior izquierda
+        rotar_imagen_recursiva(img, img_rotada, x, y + mid_height, mid_width, height - mid_height, channels, full_width);
+        
+        // Subimagen inferior derecha
+        rotar_imagen_recursiva(img, img_rotada, x + mid_width, y + mid_height, width - mid_width, height - mid_height, channels, full_width);
     }
-
-    // Llamada recursiva para el siguiente píxel en la fila
-    rotar_pixel_recursivo(img, size, img_rotada, x + 1, y, channels);
 }
 
+
+// Función principal
 int main() {
     int width, height, channels;
 
-    // Cargar la imagen manteniendo el canal alfa si existe
+    // Cargar la imagen
     unsigned char *img = stbi_load("imagen.png", &width, &height, &channels, 0);
-    if (img == NULL) {
+    if (!img) {
         printf("Error al cargar la imagen.\n");
-        return 1;
-    }
-
-    if (width != height) {
-        printf("La imagen no es cuadrada. Este programa está diseñado para imágenes cuadradas.\n");
-        stbi_image_free(img);
         return 1;
     }
 
     printf("Imagen cargada: %d x %d, canales: %d\n", width, height, channels);
 
-    // Crear una nueva imagen para la rotación
+    // Crear una imagen rotada vacía
     unsigned char *img_rotada = (unsigned char *)malloc(width * height * channels);
     if (img_rotada == NULL) {
         printf("Error al asignar memoria para la imagen rotada.\n");
@@ -65,17 +65,17 @@ int main() {
     memset(img_rotada, 0, width * height * channels);
 
     // Rotar la imagen de forma recursiva
-    rotar_pixel_recursivo(img, width, img_rotada, 0, 0, channels);
+    rotar_imagen_recursiva(img, img_rotada, 0, 0, width, height, channels, width);
 
-    // Guardar la nueva imagen rotada como PNG para mantener la transparencia
-    if (stbi_write_png("imagen_rotada_recursiva.png", width, height, channels, img_rotada, width * channels) == 0) {
+    // Guardar la imagen rotada
+    if (stbi_write_png("imagen_rotada.png", height, width, channels, img_rotada, height * channels) == 0) {
         printf("Error al guardar la imagen.\n");
         stbi_image_free(img);
         free(img_rotada);
         return 1;
     }
 
-    printf("Imagen rotada guardada correctamente como 'imagen_rotada_recursiva.png'.\n");
+    printf("Imagen rotada guardada correctamente.\n");
 
     // Liberar la memoria
     stbi_image_free(img);
