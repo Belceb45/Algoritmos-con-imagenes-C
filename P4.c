@@ -7,6 +7,8 @@
 // Prototipos de funciones
 void leer_imagen(FILE *archivo, char imagen[MAX_FILA][MAX_COL], int *filas, int *columnas);
 void rotar_imagen(char imagen[MAX_FILA][MAX_COL], int *filas, int *columnas);
+void rec(char imagen[MAX_FILA][MAX_COL], int filas, int columnas);
+void rotar_imagenASCII_recursiva(char imagen[MAX_FILA][MAX_COL], char transpuesta[MAX_COL][MAX_FILA], int x, int y, int width, int height);
 void mostrar_imagen(FILE *archivo_salida, char imagen[MAX_FILA][MAX_COL], int filas, int columnas);
 
 int main()
@@ -36,35 +38,51 @@ int main()
     leer_imagen(archivo, imagen, &filas, &columnas);
 
     // Pedir al usuario el número de rotaciones
-    int rotaciones;
-    printf("Número de rotaciones (90 grados cada una): ");
+    int rotaciones = 0;
+    printf("Numero de rotaciones (90 grados cada una): ");
     scanf("%d", &rotaciones);
 
     // Reducir las rotaciones a un valor entre 0 y 3
     rotaciones = rotaciones % 4;
-    if (rotaciones < 0) rotaciones += 4;  // Asegurar rotaciones positivas
+    if (rotaciones < 0)
+        rotaciones += 4; // Asegurar rotaciones positivas
 
-    // Rotar la imagen el número de veces requerido
+    // Selección del método de rotación
+    int metodo = 0;
+    printf("1.Iterativo\n");
+    printf("2.Recursivo\nR: ");
+    scanf("%d", &metodo);
+
+    // Rotar la imagen el número de veces requerido usando el método elegido
     for (int i = 0; i < rotaciones; i++)
     {
-        rotar_imagen(imagen, &filas, &columnas);
+        if (metodo == 1)
+        {
+            // Rotación iterativa
+            rotar_imagen(imagen, &filas, &columnas);
+        }
+        else if (metodo == 2)
+        {
+            rec(imagen, filas, columnas);
+        }
     }
+    mostrar_imagen(archivo_salida, imagen, filas, columnas);
 
     // Mostrar la imagen rotada en el archivo de salida
-    mostrar_imagen(archivo_salida, imagen, filas, columnas);
 
     // Cerrar los archivos
     fclose(archivo);
     fclose(archivo_salida);
 
     printf("Imagen rotada y guardada correctamente en 'img2.txt'.\n");
-
     return 0;
 }
 
 // Función para leer la imagen desde el archivo
 void leer_imagen(FILE *archivo, char imagen[MAX_FILA][MAX_COL], int *filas, int *columnas)
 {
+    *filas = 0;
+    *columnas = 0;
     // Leer la imagen línea por línea
     while (fgets(imagen[*filas], MAX_COL, archivo))
     {
@@ -129,4 +147,66 @@ void mostrar_imagen(FILE *archivo_salida, char imagen[MAX_FILA][MAX_COL], int fi
 
     // Verificar que la imagen se haya guardado
     printf("Imagen rotada escrita correctamente en 'img2.txt'.\n");
+}
+
+void rotar_imagenASCII_recursiva(char imagen[MAX_FILA][MAX_COL], char transpuesta[MAX_COL][MAX_FILA], int x, int y, int width, int height)
+{
+    // Caso base: Si la subimagen tiene solo un píxel
+    if (width == 1 && height == 1)
+    {
+        transpuesta[y][x] = imagen[x][y];
+        return;
+    }
+
+    // Dividir la imagen en cuatro subimágenes
+    int mid_width = width / 2;
+    int mid_height = height / 2;
+
+    // Llamadas recursivas para cada subimagen
+    if (mid_width > 0 || mid_height > 0)
+    {
+        // Subimagen superior izquierda
+        rotar_imagenASCII_recursiva(imagen, transpuesta, x, y, mid_width, mid_height);
+
+        // Subimagen superior derecha
+        rotar_imagenASCII_recursiva(imagen, transpuesta, x + mid_width, y, width - mid_width, mid_height);
+
+        // Subimagen inferior izquierda
+        rotar_imagenASCII_recursiva(imagen, transpuesta, x, y + mid_height, mid_width, height - mid_height);
+
+        // Subimagen inferior derecha
+        rotar_imagenASCII_recursiva(imagen, transpuesta, x + mid_width, y + mid_height, width - mid_width, height - mid_height);
+    }
+
+    // Combinar las subimágenes transpuestas en la imagen original
+    for (int i = 0; i < width; i++)
+    {
+        for (int j = 0; j < height; j++)
+        {
+            transpuesta[j][i] = imagen[i][j];
+        }
+    }
+}
+
+void rec(char imagen[MAX_FILA][MAX_COL], int filas, int columnas)
+{
+    // Crear una matriz auxiliar para la transposición
+    char transpuesta[MAX_COL][MAX_FILA];
+
+    // Llamada recursiva para rotar la imagen
+    rotar_imagenASCII_recursiva(imagen, transpuesta, 0, 0, filas, columnas);
+
+    // Copiar la imagen rotada a la matriz original
+    for (int x = 0; x < columnas; x++)
+    {
+        for (int y = 0; y < filas; y++)
+        {
+            imagen[x][y] = transpuesta[x][y];
+        }
+    }
+
+    // Intercambiar las dimensiones
+    int temp = filas;
+    filas = columnas;
+    columnas = temp;
 }

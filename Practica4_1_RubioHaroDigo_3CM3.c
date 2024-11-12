@@ -33,9 +33,11 @@ void rotar_imagen_90(unsigned char *img, int width, int height, unsigned char *i
 void rotar_imagen_recursiva(unsigned char *img, unsigned char *img_rotada, int x, int y, int width, int height, int channels, int full_width);
 void invertir_colores(unsigned char *img, int width, int height);
 /*Declaraciones para ASCII*/
-void leer_imagenASCII(FILE *archivo, char imagen[MAX_FILA][MAX_COL], int *filas, int *columnas);
-void rotar_imagenASCII(char imagen[MAX_FILA][MAX_COL], int *filas, int *columnas);
-void mostrar_imagenASCII(FILE *archivo_salida, char imagen[MAX_FILA][MAX_COL], int filas, int columnas);
+void leer_imagen(FILE *archivo, char imagen[MAX_FILA][MAX_COL], int *filas, int *columnas);
+void rotar_imagen(char imagen[MAX_FILA][MAX_COL], int *filas, int *columnas);
+void rec(char imagen[MAX_FILA][MAX_COL], int filas, int columnas);
+void rotar_imagenASCII_recursiva(char imagen[MAX_FILA][MAX_COL], char transpuesta[MAX_COL][MAX_FILA], int x, int y, int width, int height);
+void mostrar_imagen(FILE *archivo_salida, char imagen[MAX_FILA][MAX_COL], int filas, int columnas);
 
 int main()
 {
@@ -90,11 +92,11 @@ int main()
         int filas = 0, columnas = 0;
 
         // Leer la imagen desde el archivo
-        leer_imagenASCII(archivo, imagen, &filas, &columnas);
+        leer_imagen(archivo, imagen, &filas, &columnas);
 
         // Pedir al usuario el número de rotaciones
-        int rotaciones;
-        printf("Número de rotaciones (90 grados cada una): ");
+        int rotaciones = 0;
+        printf("Numero de rotaciones (90 grados cada una): ");
         scanf("%d", &rotaciones);
 
         // Reducir las rotaciones a un valor entre 0 y 3
@@ -102,14 +104,28 @@ int main()
         if (rotaciones < 0)
             rotaciones += 4; // Asegurar rotaciones positivas
 
-        // Rotar la imagen el número de veces requerido
+        // Selección del método de rotación
+        int metodo = 0;
+        printf("1.Iterativo\n");
+        printf("2.Recursivo\nR: ");
+        scanf("%d", &metodo);
+
+        // Rotar la imagen el número de veces requerido usando el método elegido
         for (int i = 0; i < rotaciones; i++)
         {
-            rotar_imagenASCII(imagen, &filas, &columnas);
+            if (metodo == 1)
+            {
+                // Rotación iterativa
+                rotar_imagen(imagen, &filas, &columnas);
+            }
+            else if (metodo == 2)
+            {
+                rec(imagen, filas, columnas);
+            }
         }
+        mostrar_imagen(archivo_salida, imagen, filas, columnas);
 
         // Mostrar la imagen rotada en el archivo de salida
-        mostrar_imagenASCII(archivo_salida, imagen, filas, columnas);
 
         // Cerrar los archivos
         fclose(archivo);
@@ -181,7 +197,7 @@ int main()
     return 0;
 }
 
-//Funciones RGB -----------------------------------------------------------------------------------
+// Funciones RGB -----------------------------------------------------------------------------------
 
 // Función para rotar la imagen 90 grados de manera iterativa
 void rotar_imagen_90(unsigned char *img, int width, int height, unsigned char *img_rotada)
@@ -263,11 +279,12 @@ void invertir_colores(unsigned char *img, int width, int height)
     }
 }
 
-//Funciones ASCII -----------------------------------------------------------------------------------------------------
-
+// Funciones ASCII -----------------------------------------------------------------------------------------------------
 // Función para leer la imagen desde el archivo
-void leer_imagenASCII(FILE *archivo, char imagen[MAX_FILA][MAX_COL], int *filas, int *columnas)
+void leer_imagen(FILE *archivo, char imagen[MAX_FILA][MAX_COL], int *filas, int *columnas)
 {
+    *filas = 0;
+    *columnas = 0;
     // Leer la imagen línea por línea
     while (fgets(imagen[*filas], MAX_COL, archivo))
     {
@@ -286,7 +303,7 @@ void leer_imagenASCII(FILE *archivo, char imagen[MAX_FILA][MAX_COL], int *filas,
 }
 
 // Función para rotar la imagen 90 grados (modificando la matriz original)
-void rotar_imagenASCII(char imagen[MAX_FILA][MAX_COL], int *filas, int *columnas)
+void rotar_imagen(char imagen[MAX_FILA][MAX_COL], int *filas, int *columnas)
 {
     // Crear una matriz auxiliar para la transposición
     char transpuesta[MAX_COL][MAX_FILA];
@@ -319,7 +336,7 @@ void rotar_imagenASCII(char imagen[MAX_FILA][MAX_COL], int *filas, int *columnas
 }
 
 // Función para mostrar la imagen (en el archivo de salida)
-void mostrar_imagenASCII(FILE *archivo_salida, char imagen[MAX_FILA][MAX_COL], int filas, int columnas)
+void mostrar_imagen(FILE *archivo_salida, char imagen[MAX_FILA][MAX_COL], int filas, int columnas)
 {
     for (int i = 0; i < filas; i++)
     {
@@ -334,122 +351,133 @@ void mostrar_imagenASCII(FILE *archivo_salida, char imagen[MAX_FILA][MAX_COL], i
     printf("Imagen rotada escrita correctamente en 'img2.txt'.\n");
 }
 
-//----------------------------------------------------------------------------------------------------
+void rotar_imagenASCII_recursiva(char imagen[MAX_FILA][MAX_COL], char transpuesta[MAX_COL][MAX_FILA], int x, int y, int width, int height)
+{
+    // Caso base: Si la subimagen tiene solo un píxel
+    if (width == 1 && height == 1)
+    {
+        transpuesta[y][x] = imagen[x][y];
+        return;
+    }
 
+    // Dividir la imagen en cuatro subimágenes
+    int mid_width = width / 2;
+    int mid_height = height / 2;
+
+    // Llamadas recursivas para cada subimagen
+    if (mid_width > 0 || mid_height > 0)
+    {
+        // Subimagen superior izquierda
+        rotar_imagenASCII_recursiva(imagen, transpuesta, x, y, mid_width, mid_height);
+
+        // Subimagen superior derecha
+        rotar_imagenASCII_recursiva(imagen, transpuesta, x + mid_width, y, width - mid_width, mid_height);
+
+        // Subimagen inferior izquierda
+        rotar_imagenASCII_recursiva(imagen, transpuesta, x, y + mid_height, mid_width, height - mid_height);
+
+        // Subimagen inferior derecha
+        rotar_imagenASCII_recursiva(imagen, transpuesta, x + mid_width, y + mid_height, width - mid_width, height - mid_height);
+    }
+
+    // Combinar las subimágenes transpuestas en la imagen original
+    for (int i = 0; i < width; i++)
+    {
+        for (int j = 0; j < height; j++)
+        {
+            transpuesta[j][i] = imagen[i][j];
+        }
+    }
+}
+
+void rec(char imagen[MAX_FILA][MAX_COL], int filas, int columnas)
+{
+    // Crear una matriz auxiliar para la transposición
+    char transpuesta[MAX_COL][MAX_FILA];
+
+    // Llamada recursiva para rotar la imagen
+    rotar_imagenASCII_recursiva(imagen, transpuesta, 0, 0, filas, columnas);
+
+    // Copiar la imagen rotada a la matriz original
+    for (int x = 0; x < columnas; x++)
+    {
+        for (int y = 0; y < filas; y++)
+        {
+            imagen[x][y] = transpuesta[x][y];
+        }
+    }
+
+    // Intercambiar las dimensiones
+    int temp = filas;
+    filas = columnas;
+    columnas = temp;
+}
+
+//----------------------------------------------------------------------------------------------------
 
 /*
 
+-Descripción General
+    Este programa carga una imagen en formato RGB y permite rotarla. Primero, leemos la imagen desde un archivo (llamado imagen.png), y después el programa te da la opción de elegir entre dos tipos de rotación: iterativa o recursiva. Una vez que eliges la opción, aplica la rotación y guarda la imagen resultante en un archivo. Además, tenemos una función para invertir los colores de la imagen, por si quieres darle un toque distinto.
 
-Descripción General;
+-Dependencias
+    Para cargar y guardar las imágenes, el programa usa las bibliotecas stb_image y stb_image_write, que necesitas incluir en el proyecto para que funcione todo sin problemas.
 
-Este programa carga una imagen en formato RGB, permite al usuario elegir entre dos tipos de rotación (iterativa o recursiva), aplica la rotación seleccionada y guarda la imagen resultante en un archivo. Además, incluye una función para invertir los colores de la imagen.
+-Funciones
+    main()
+    
+    1.Cargar la imagen:
+        Aquí usamos stbi_load para leer una imagen en formato RGB desde imagen.png. Si no se puede cargar, muestra un mensaje de error y termina.
 
-### Dependencias
+    2.Asignar memoria:
+        Reservo espacio para una nueva imagen donde guardaremos la imagen rotada y modificada.
 
-El programa utiliza las bibliotecas `stb_image` y `stb_image_write` para cargar y guardar imágenes. Estas bibliotecas deben estar incluidas en el proyecto.
+    3.Seleccionar el tipo de rotación:
+        Se despliega un menú para que elijas entre rotación iterativa (opción 1) o rotación recursiva (opción 2).
 
-### Funciones
-
-#### `main()`
-
-1. **Carga de la imagen**:
-    - Utiliza `stbi_load` para cargar una imagen en formato RGB desde un archivo llamado `imagen.png`.
-    - Verifica si la imagen se cargó correctamente. Si no, imprime un mensaje de error y termina el programa.
-
-2. **Asignación de memoria**:
-    - Asigna memoria para una nueva imagen que se utilizará para almacenar la imagen rotada y modificada.
-
-3. **Selección de la opción de rotación**:
-    - Muestra un menú para que el usuario elija entre rotación iterativa (opción 1) o rotación recursiva (opción 2).
-
-4. **Rotación iterativa**:
-    - Si el usuario elige la opción 1, llama a la función `rotar_imagen_90` para rotar la imagen 90 grados de manera iterativa.
-    - Guarda la imagen rotada en un archivo llamado `imagen_modificada.png` utilizando `stbi_write_png`.
-    - Verifica si la imagen se guardó correctamente. Si no, imprime un mensaje de error y termina el programa.
-
-5. **Rotación recursiva**:
-    - Si el usuario elige la opción 2, asigna memoria para una nueva imagen que se utilizará para almacenar la imagen rotada recursivamente.
-    - Llama a la función `rotar_imagen_recursiva` para rotar la imagen 90 grados de manera recursiva.
-    - Guarda la imagen rotada en un archivo llamado `imagen_modificada_recu.png` utilizando `stbi_write_png`.
-    - Verifica si la imagen se guardó correctamente. Si no, imprime un mensaje de error y termina el programa.
-
-6. **Liberación de memoria**:
-    - Libera la memoria asignada para las imágenes cargadas y modificadas.
-
-#### `rotar_imagen_90(unsigned char *img, int width, int height, unsigned char *img_rotada)`
-
-Esta función rota una imagen 90 grados de manera iterativa.
-
-- **Parámetros**:
-    - `img`: Puntero a la imagen original.
-    - `width`: Ancho de la imagen original.
-    - `height`: Altura de la imagen original.
-    - `img_rotada`: Puntero a la imagen rotada.
-
-- **Funcionamiento**:
-    - Recorre cada píxel de la imagen original.
-    - Calcula el índice del píxel en la imagen original y en la imagen rotada.
-    - Copia los valores RGB del píxel de la imagen original a la imagen rotada en la nueva posición.
-
-#### `rotar_imagen_recursiva(unsigned char *img, unsigned char *img_rotada, int x, int y, int width, int height, int channels, int full_width)`
-
-Esta función rota una imagen 90 grados de manera recursiva.
-
-- **Parámetros**:
-    - `img`: Puntero a la imagen original.
-    - `img_rotada`: Puntero a la imagen rotada.
-    - `x`: Coordenada x de la subimagen.
-    - `y`: Coordenada y de la subimagen.
-    - `width`: Ancho de la subimagen.
-    - `height`: Altura de la subimagen.
-    - `channels`: Número de canales de la imagen.
-    - `full_width`: Ancho total de la imagen original.
-
-- **Funcionamiento**:
-    - Caso base: Si la subimagen tiene solo un píxel, copia el píxel a la nueva posición en la imagen rotada.
-    - Divide la imagen en cuatro subimágenes.
-    - Llama recursivamente a sí misma para rotar cada una de las subimágenes.
-
-#### `invertir_colores(unsigned char *img, int width, int height)`
-
-Esta función invierte los colores de una imagen.
-
-- **Parámetros**:
-    - `img`: Puntero a la imagen.
-    - `width`: Ancho de la imagen.
-    - `height`: Altura de la imagen.
-
-- **Funcionamiento**:
-    - Recorre cada píxel de la imagen.
-    - Calcula el índice del píxel en el arreglo 1D.
-    - Invierte los valores RGB del píxel.
-
-### Ejecución del Programa
-
-1. **Compilación**:
-    - Asegúrate de tener las bibliotecas `stb_image` y `stb_image_write` en tu proyecto.
-    - Compila el programa con un compilador de C, por ejemplo:
-      ```sh
-      gcc -o rotar_imagen RGB.c -lm
-      ```
-
-2. **Ejecución**:
-    - Ejecuta el programa:
-      ```sh
-      ./rotar_imagen
-      ```
-
-3. **Interacción**:
-    - El programa cargará la imagen `imagen.png`.
-    - Te pedirá que elijas entre rotación iterativa (1) o rotación recursiva (2).
-    - Guardará la imagen rotada en `imagen_modificada.png` o `imagen_modificada_recu.png` según la opción seleccionada.
-
-### Notas
-
-- Asegúrate de que el archivo `imagen.png` esté en el mismo directorio que el ejecutable del programa.
-- La función `invertir_colores` no se utiliza en el flujo actual del programa, pero está disponible para su uso si es necesario.
-
-Esta documentación debería ayudarte a entender cómo funciona el programa y cómo interactuar con él.
+    4.Rotación iterativa:
+        Si eliges la opción 1, llama a rotar_imagen_90, que rota la imagen 90 grados de forma iterativa. Luego, guarda el resultado en imagen_modificada.png. Si no puede guardarse, muestra un mensaje de error y termina.
+    
+    5.Rotación recursiva:
+        Si eliges la opción 2, primero reservo espacio para la imagen que va a almacenar la rotación recursiva. Luego, se llama a rotar_imagen_recursiva, que rota la imagen 90 grados de manera recursiva, y el resultado se guarda en imagen_modificada_recu.png. De nuevo, si falla al guardar, muestra un mensaje de error y termina.
+    
+    6.Liberar memoria:
+        Al final, libero la memoria asignada para las imágenes.
 
 
- */
+funcion --> rotar_imagen_90(unsigned char *img, int width, int height, unsigned char *img_rotada)
+
+    Esta función rota la imagen dividiéndola en secciones más pequeñas y aplicando la rotación en cada sección recursivamente. 
+    Esto seria mi metodo de "divide y vencerás". 
+
+    Parámetros:
+    -unsigned char *img: Es un puntero a los datos de la imagen original.
+    -unsigned char *img_rotada: Puntero a la imagen rotada, donde se van a almacenar los píxeles en su nueva posición.
+    -int x, y: Coordenadas (x, y) que indican la esquina superior izquierda de la subimagen en la que estamos trabajando.
+    -int width, height: Ancho y alto de la subimagen actual.
+    -int channels: Número de canales de color en la imagen (por ejemplo, 3 para RGB).
+    -int full_width: Ancho total de la imagen original, que usamos para calcular las posiciones absolutas de cada píxel.
+
+Proceso de Rotación: 
+
+Caso base (Un solo píxel):
+
+    -Si la subimagen actual tiene solo un píxel (width == 1 y height == 1), estamos listos para rotarlo.
+    -Calculamos la posición de este píxel en la imagen original (idx) y su posición en la imagen rotada (rot_idx).
+    -Luego copiamos los valores de color (RGB) del píxel original a la nueva posición en img_rotada.
+
+División de la Imagen:
+
+    -Si la subimagen es más grande que un píxel, dividimos la subimagen en cuatro cuadrantes (superior izquierda, superior derecha, inferior izquierda, e inferior derecha).
+    -Calculamos los anchos y alturas medios (mid_width y mid_height) para estas divisiones.
+
+Llamadas Recursivas:
+    
+    -Llamamos a rotar_imagen_recursiva en cada uno de los cuatro cuadrantes.
+    -Cada llamada se centra en un cuadrante específico y va dividiendo y rotando hasta que cada subimagen se reduce a un solo píxel, en cuyo punto se aplica la rotación.
+
+
+Si existe alguna duda pueden mandar mensaje por mi github o por mi correo (rubiodiego001@gmail.com)
+
+
+*/
